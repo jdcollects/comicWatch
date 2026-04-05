@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Comic Deal Sniper AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial;
+      background: #0b1220;
+      color: white;
+      padding: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+    .card {
+      background: #111827;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 10px;
+    }
+    .buy { color: #22c55e; }
+    .maybe { color: #f59e0b; }
+    .pass { color: #ef4444; }
+  </style>
+</head>
+<body>
+
+<h2>💥 Comic Deal Sniper AI</h2>
+
+<input id="title" placeholder="Title (e.g. Absolute Batman #1-5 full run)" />
+<input id="price" placeholder="Price" />
+<input id="shipping" placeholder="Shipping" />
+<input id="condition" placeholder="Condition" />
+<input id="feedback" placeholder="Seller Feedback %" />
+
+<button onclick="analyze()">Analyze</button>
+
+<div id="result"></div>
+
+<script>
+const API_URL = "https://YOUR-RENDER-URL.onrender.com/ai/analyze";
+
+async function analyze() {
+  const payload = {
+    title: document.getElementById("title").value,
+    price: parseFloat(document.getElementById("price").value || 0),
+    shipping: parseFloat(document.getElementById("shipping").value || 0),
+    condition: document.getElementById("condition").value,
+    seller_feedback: parseFloat(document.getElementById("feedback").value || 0)
+  };
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <h3 class="${data.recommendation.toLowerCase()}">
+        ${data.recommendation}
+      </h3>
+
+      <p>💰 Price: $${payload.price}</p>
+      <p>📈 Profit: $${data.profit}</p>
+      <p>📊 ROI: ${data.roi}%</p>
+      <p>🔥 Score: ${data.score}</p>
+
+      <p>📚 Issues: ${data.issues_detected}</p>
+      <p>🧠 First Print: ${Math.round(data.first_print_confidence * 100)}%</p>
+
+      <p><b>Reasoning:</b></p>
+      ${data.reasoning.map(r => `<p>• ${r}</p>`).join("")}
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>
