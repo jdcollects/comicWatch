@@ -1,0 +1,39 @@
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+
+export type Analysis = {
+  normalized_query: string;
+  is_full_run: boolean;
+  issues_detected: number[];
+  first_print_confidence: number;
+  risk_flags: string[];
+  estimated_value: number;
+  total_cost: number;
+  profit: number;
+  roi: number;
+  score: number;
+  recommendation: "BUY" | "MAYBE" | "PASS";
+  reasoning: string[];
+};
+
+export async function analyzeListing(payload: {
+  title: string;
+  price: number;
+  shipping: number;
+  condition: string;
+  seller_feedback: number;
+}): Promise<Analysis> {
+  const response = await fetch(`${API_BASE_URL}/ai/analyze`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to analyze listing.");
+  }
+
+  return response.json();
+}
