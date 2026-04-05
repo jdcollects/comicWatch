@@ -1,6 +1,6 @@
 # Comic Deal Sniper AI - Updated Repo
 
-This package updates the project to an **AI-only version** that works before your eBay developer account is approved.
+This package updates the project to an **AI-only version**.
 
 ## What's included
 
