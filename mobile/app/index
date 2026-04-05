@@ -1,0 +1,378 @@
+import React, { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
+import { analyzeListing, Analysis } from "../src/lib/api";
+import { useAppTheme } from "../src/theme/ThemeContext";
+
+function getRecommendationColor(rec: string, theme: any) {
+  if (rec === "BUY") return theme.success;
+  if (rec === "MAYBE") return theme.warning;
+  return theme.pass;
+}
+
+export default function HomeScreen() {
+  const { theme, toggleTheme } = useAppTheme();
+
+  const [title, setTitle] = useState("Absolute Batman #1-5 full run first print NM");
+  const [price, setPrice] = useState("165");
+  const [shipping, setShipping] = useState("8");
+  const [condition, setCondition] = useState("Near Mint");
+  const [sellerFeedback, setSellerFeedback] = useState("99.4");
+  const [result, setResult] = useState<Analysis | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+
+  const onAnalyze = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await analyzeListing({
+        title,
+        price: Number(price || 0),
+        shipping: Number(shipping || 0),
+        condition,
+        seller_feedback: Number(sellerFeedback || 0),
+      });
+      setResult(data);
+    } catch (err) {
+      setError("Could not reach the backend. Check your backend URL and make sure the server is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar style={theme.name === "dark" ? "light" : "dark"} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.container}>
+          <LinearGradient
+            colors={theme.name === "dark" ? ["#0F1C33", "#07111F"] : ["#E8F0FF", "#F4F7FB"]}
+            style={styles.hero}
+          >
+            <View style={styles.heroRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.brand}>Comic Deal Sniper AI</Text>
+                <Text style={styles.sub}>
+                  Paste a comic listing and get an AI buy recommendation.
+                </Text>
+              </View>
+              <View style={styles.toggleWrap}>
+                <Text style={styles.toggleLabel}>{theme.name === "dark" ? "Dark" : "Light"}</Text>
+                <Switch value={theme.name === "dark"} onValueChange={toggleTheme} />
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Listing Input</Text>
+
+            <Text style={styles.label}>Title</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Absolute Batman #1-5 full run first print"
+              placeholderTextColor={theme.muted}
+            />
+
+            <View style={styles.row}>
+              <View style={styles.col}>
+                <Text style={styles.label}>Price</Text>
+                <TextInput
+                  style={styles.input}
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="decimal-pad"
+                  placeholder="165"
+                  placeholderTextColor={theme.muted}
+                />
+              </View>
+              <View style={styles.col}>
+                <Text style={styles.label}>Shipping</Text>
+                <TextInput
+                  style={styles.input}
+                  value={shipping}
+                  onChangeText={setShipping}
+                  keyboardType="decimal-pad"
+                  placeholder="8"
+                  placeholderTextColor={theme.muted}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.label}>Condition</Text>
+            <TextInput
+              style={styles.input}
+              value={condition}
+              onChangeText={setCondition}
+              placeholder="Near Mint"
+              placeholderTextColor={theme.muted}
+            />
+
+            <Text style={styles.label}>Seller Feedback %</Text>
+            <TextInput
+              style={styles.input}
+              value={sellerFeedback}
+              onChangeText={setSellerFeedback}
+              keyboardType="decimal-pad"
+              placeholder="99.4"
+              placeholderTextColor={theme.muted}
+            />
+
+            <Pressable style={styles.button} onPress={onAnalyze}>
+              {loading ? (
+                <ActivityIndicator color={theme.accentText} />
+              ) : (
+                <Text style={styles.buttonText}>Analyze Listing</Text>
+              )}
+            </Pressable>
+
+            {!!error && <Text style={styles.error}>{error}</Text>}
+          </View>
+
+          {result && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>AI Result</Text>
+
+              <View style={styles.badgeRow}>
+                <View style={[styles.badge, { backgroundColor: getRecommendationColor(result.recommendation, theme) }]}>
+                  <Text style={styles.badgeText}>{result.recommendation}</Text>
+                </View>
+                <View style={styles.badgeOutline}>
+                  <Text style={styles.badgeOutlineText}>Score {result.score}</Text>
+                </View>
+                <View style={styles.badgeOutline}>
+                  <Text style={styles.badgeOutlineText}>
+                    First Print {Math.round(result.first_print_confidence * 100)}%
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.metricGrid}>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Estimated Value</Text>
+                  <Text style={styles.metricValue}>${result.estimated_value.toFixed(2)}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Total Cost</Text>
+                  <Text style={styles.metricValue}>${result.total_cost.toFixed(2)}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Profit</Text>
+                  <Text style={styles.metricValue}>${result.profit.toFixed(2)}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>ROI</Text>
+                  <Text style={styles.metricValue}>{result.roi.toFixed(2)}%</Text>
+                </View>
+              </View>
+
+              <Text style={styles.sectionTitle}>Run Detection</Text>
+              <Text style={styles.body}>
+                {result.is_full_run
+                  ? `Full run detected: issues ${result.issues_detected.join(", ")}`
+                  : result.issues_detected.length
+                  ? `Detected issues: ${result.issues_detected.join(", ")}`
+                  : "No issue numbers detected."}
+              </Text>
+
+              <Text style={styles.sectionTitle}>Reasoning</Text>
+              {result.reasoning.map((line, idx) => (
+                <Text style={styles.bullet} key={idx}>• {line}</Text>
+              ))}
+
+              <Text style={styles.sectionTitle}>Risk Flags</Text>
+              <Text style={styles.body}>
+                {result.risk_flags.length ? result.risk_flags.join(", ") : "None detected."}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function makeStyles(theme: any) {
+  return StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    container: {
+      padding: 16,
+      gap: 16,
+    },
+    hero: {
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    heroRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 12,
+    },
+    brand: {
+      fontSize: 26,
+      fontWeight: "800",
+      color: theme.text,
+      marginBottom: 6,
+    },
+    sub: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.muted,
+    },
+    toggleWrap: {
+      alignItems: "center",
+      gap: 6,
+    },
+    toggleLabel: {
+      color: theme.text,
+      fontWeight: "700",
+      fontSize: 12,
+    },
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 20,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      gap: 10,
+    },
+    cardTitle: {
+      color: theme.text,
+      fontSize: 20,
+      fontWeight: "800",
+      marginBottom: 4,
+    },
+    label: {
+      color: theme.text,
+      fontWeight: "700",
+      fontSize: 13,
+    },
+    input: {
+      backgroundColor: theme.background,
+      borderWidth: 1,
+      borderColor: theme.border,
+      color: theme.text,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+    },
+    row: {
+      flexDirection: "row",
+      gap: 12,
+    },
+    col: {
+      flex: 1,
+      gap: 8,
+    },
+    button: {
+      marginTop: 6,
+      backgroundColor: theme.accent,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    buttonText: {
+      color: theme.accentText,
+      fontWeight: "800",
+      fontSize: 16,
+    },
+    error: {
+      color: theme.pass,
+      marginTop: 6,
+    },
+    badgeRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 8,
+    },
+    badge: {
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    badgeText: {
+      color: "#FFFFFF",
+      fontWeight: "800",
+    },
+    badgeOutline: {
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.background,
+    },
+    badgeOutlineText: {
+      color: theme.text,
+      fontWeight: "700",
+    },
+    metricGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      marginVertical: 4,
+    },
+    metricCard: {
+      width: "48%",
+      backgroundColor: theme.background,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 16,
+      padding: 12,
+      gap: 4,
+    },
+    metricLabel: {
+      color: theme.muted,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    metricValue: {
+      color: theme.text,
+      fontSize: 20,
+      fontWeight: "800",
+    },
+    sectionTitle: {
+      color: theme.text,
+      fontSize: 16,
+      fontWeight: "800",
+      marginTop: 8,
+    },
+    body: {
+      color: theme.muted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    bullet: {
+      color: theme.muted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+  });
+}
