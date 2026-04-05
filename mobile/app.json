@@ -1,1 +1,16 @@
-
+{
+  "expo": {
+    "name": "Comic Deal Sniper AI",
+    "slug": "comic-deal-sniper-ai",
+    "scheme": "comicdealsniperai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
