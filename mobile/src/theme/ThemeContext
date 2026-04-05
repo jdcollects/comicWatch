@@ -1,0 +1,83 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+type ThemeName = "light" | "dark";
+
+type Theme = {
+  name: ThemeName;
+  background: string;
+  card: string;
+  text: string;
+  muted: string;
+  border: string;
+  accent: string;
+  accentText: string;
+  success: string;
+  warning: string;
+  pass: string;
+};
+
+const themes: Record<ThemeName, Theme> = {
+  light: {
+    name: "light",
+    background: "#F4F7FB",
+    card: "#FFFFFF",
+    text: "#0F172A",
+    muted: "#475569",
+    border: "#D9E2EC",
+    accent: "#315EFB",
+    accentText: "#FFFFFF",
+    success: "#15803D",
+    warning: "#B45309",
+    pass: "#B91C1C",
+  },
+  dark: {
+    name: "dark",
+    background: "#07111F",
+    card: "#101C2E",
+    text: "#F8FAFC",
+    muted: "#AAB7CA",
+    border: "#22304A",
+    accent: "#60A5FA",
+    accentText: "#07111F",
+    success: "#22C55E",
+    warning: "#F59E0B",
+    pass: "#F87171",
+  },
+};
+
+type ContextValue = {
+  theme: Theme;
+  toggleTheme: () => void;
+};
+
+const ThemeContext = createContext<ContextValue | null>(null);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [name, setName] = useState<ThemeName>("dark");
+
+  useEffect(() => {
+    AsyncStorage.getItem("theme_name").then((saved) => {
+      if (saved === "light" || saved === "dark") {
+        setName(saved);
+      }
+    });
+  }, []);
+
+  const toggleTheme = async () => {
+    const next = name === "dark" ? "light" : "dark";
+    setName(next);
+    await AsyncStorage.setItem("theme_name", next);
+  };
+
+  const value = useMemo(() => ({ theme: themes[name], toggleTheme }), [name]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useAppTheme() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) {
+    throw new Error("useAppTheme must be used inside ThemeProvider");
+  }
+  return ctx;
+}
